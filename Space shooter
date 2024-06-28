@@ -1,0 +1,130 @@
+import pygame
+import random
+
+# Initialize pygame
+pygame.init()
+
+# Screen dimensions
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+
+# Game settings
+PLAYER_SPEED = 5
+ENEMY_SPEED = 3
+BULLET_SPEED = 7
+
+# Initialize screen
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Space Shooter")
+
+# Load images
+player_img = pygame.image.load("player.png")
+enemy_img = pygame.image.load("enemy.png")
+bullet_img = pygame.image.load("bullet.png")
+
+# Player class
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super(Player, self).__init__()
+        self.image = player_img
+        self.rect = self.image.get_rect()
+        self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 50)
+        self.speed = PLAYER_SPEED
+
+    def update(self, keys_pressed):
+        if keys_pressed[pygame.K_LEFT] and self.rect.left > 0:
+            self.rect.x -= self.speed
+        if keys_pressed[pygame.K_RIGHT] and self.rect.right < SCREEN_WIDTH:
+            self.rect.x += self.speed
+
+    def shoot(self):
+        bullet = Bullet(self.rect.centerx, self.rect.top)
+        all_sprites.add(bullet)
+        bullets.add(bullet)
+
+# Enemy class
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self):
+        super(Enemy, self).__init__()
+        self.image = enemy_img
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randint(0, SCREEN_WIDTH - self.rect.width)
+        self.rect.y = random.randint(-100, -40)
+        self.speed = ENEMY_SPEED
+
+    def update(self):
+        self.rect.y += self.speed
+        if self.rect.top > SCREEN_HEIGHT:
+            self.rect.x = random.randint(0, SCREEN_WIDTH - self.rect.width)
+            self.rect.y = random.randint(-100, -40)
+
+# Bullet class
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Bullet, self).__init__()
+        self.image = bullet_img
+        self.rect = self.image.get_rect()
+        self.rect.centerx = x
+        self.rect.bottom = y
+        self.speed = BULLET_SPEED
+
+    def update(self):
+        self.rect.y -= self.speed
+        if self.rect.bottom < 0:
+            self.kill()
+
+# Sprite groups
+all_sprites = pygame.sprite.Group()
+enemies = pygame.sprite.Group()
+bullets = pygame.sprite.Group()
+
+# Create player
+player = Player()
+all_sprites.add(player)
+
+# Create enemies
+for _ in range(8):
+    enemy = Enemy()
+    all_sprites.add(enemy)
+    enemies.add(enemy)
+
+# Main game loop
+running = True
+clock = pygame.time.Clock()
+
+while running:
+    clock.tick(60)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                player.shoot()
+
+    keys_pressed = pygame.key.get_pressed()
+    player.update(keys_pressed)
+
+    # Update sprites
+    all_sprites.update()
+
+    # Check for collisions
+    hits = pygame.sprite.groupcollide(enemies, bullets, True, True)
+    for hit in hits:
+        enemy = Enemy()
+        all_sprites.add(enemy)
+        enemies.add(enemy)
+
+    if pygame.sprite.spritecollideany(player, enemies):
+        running = False
+
+    # Draw everything
+    screen.fill(BLACK)
+    all_sprites.draw(screen)
+    pygame.display.flip()
+
+pygame.quit()
